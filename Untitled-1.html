@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Periodic Table (H to Ne) - Image Display</title>
+<style>
+    /* Global Styles */
+    body {
+        font-family: "Poppins", sans-serif;
+        background: #1a1a2e; /* Dark blue/purple background from image */
+        color: #f0f0f0;
+        text-align: center;
+        margin: 0;
+        padding: 20px;
+    }
+
+    h1 {
+        color: #ffffff;
+        margin-bottom: 30px;
+        font-size: 28px;
+        font-weight: 300;
+    }
+
+    /* Table Layout */
+    .table-container {
+        display: flex;
+        justify-content: center;
+        /* Padding to prevent edge-to-edge content */
+        padding: 50px 0;
+    }
+
+    .table {
+        display: grid;
+        /* 18 columns, 60px wide, with 5px gap - matching the reference image's density */
+        grid-template-columns: repeat(18, 60px); 
+        grid-template-rows: repeat(2, 80px); /* 2 rows for periods 1 and 2, 80px tall to fit image and text */
+        gap: 5px; 
+        width: calc((18 * 60px) + (17 * 5px)); /* Total width calculation */
+        margin: 0 auto;
+    }
+
+    /* Element Box Styling (The key changes are here) */
+    .element {
+        background: #333366; /* Base dark element color */
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px; /* Slightly rounded corners */
+        padding: 5px;
+        cursor: pointer;
+        transition: 0.2s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between; /* Space out content vertically */
+        align-items: center;
+        text-align: center;
+        height: 80px;
+        width: 60px;
+        box-sizing: border-box; /* Include padding/border in total size */
+        overflow: hidden;
+        position: relative; /* To position the image */
+    }
+
+    .element:hover {
+        background: #4a4a86;
+        transform: scale(1.02);
+        box-shadow: 0 0 10px #ff7043; /* Highlight on hover */
+    }
+
+    /* Image inside the element box */
+    .element img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* Cover the whole box with the image */
+        opacity: 0.6; /* Make the image slightly transparent */
+        border-radius: 7px;
+        z-index: 0;
+        transition: opacity 0.3s;
+    }
+
+    .element:hover img {
+        opacity: 0.9; /* More opaque on hover */
+    }
+
+    /* Text content overlay */
+    .element-content {
+        position: relative;
+        z-index: 10; /* Ensure text is above the image */
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+        padding: 2px 0;
+    }
+
+    .atomic-number {
+        font-size: 10px;
+        align-self: flex-start;
+        font-weight: 500;
+        margin-left: 2px;
+        color: #cccccc;
+    }
+
+    .symbol {
+        font-size: 24px;
+        font-weight: bold;
+        color: #ffffff;
+        line-height: 0.9;
+        margin-top: -10px; /* Pull symbol up slightly */
+    }
+
+    .name {
+        font-size: 8px;
+        font-weight: normal;
+        color: #cccccc;
+        text-transform: uppercase;
+        align-self: center;
+    }
+
+    /* Specific Positioning (Group & Period) */
+    /* Period 1 */
+    #H { grid-column: 1; grid-row: 1; }
+    #He { grid-column: 18; grid-row: 1; }
+
+    /* Period 2 */
+    #Li { grid-column: 1; grid-row: 2; }
+    #Be { grid-column: 2; grid-row: 2; }
+    #B { grid-column: 13; grid-row: 2; }
+    #C { grid-column: 14; grid-row: 2; }
+    #N { grid-column: 15; grid-row: 2; }
+    #O { grid-column: 16; grid-row: 2; }
+    #F { grid-column: 17; grid-row: 2; }
+    #Ne { grid-column: 18; grid-row: 2; }
+
+
+    /* Modal Styles (kept similar to previous dark theme) */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.9); 
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: #2a2a4a; /* Slightly lighter than body for contrast */
+        border: 2px solid #ff7043;
+        border-radius: 10px; 
+        padding: 30px;
+        width: 350px;
+        color: #f0f0f0;
+        box-shadow: 0 0 30px rgba(255, 112, 67, 0.5); 
+        text-align: center;
+    }
+
+    .modal-content img {
+        width: 180px;
+        height: 180px;
+        margin: 15px 0;
+        border-radius: 8px; 
+        background: #1a1a2e; 
+        object-fit: contain;
+        border: 3px solid #ff7043;
+        opacity: 1; /* Full opacity in modal */
+    }
+
+    .modal-content h2 {
+        color: #ff7043;
+        margin: 10px 0;
+    }
+
+    .modal-content p {
+        color: #cccccc;
+    }
+    
+    .modal-buttons {
+        margin-top: 20px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    button {
+        padding: 10px 15px; 
+        border: none;
+        border-radius: 8px; 
+        cursor: pointer;
+        font-weight: bold;
+        font-family: "Poppins", sans-serif;
+        font-size: 14px;
+        transition: 0.2s;
+    }
+
+    .prev {
+        background: #5c6bc0; /* Blue-ish prev button */
+        color: white;
+    }
+
+    .next {
+        background: #ff7043;
+        color: white;
+    }
+
+    .close {
+        background: #a84224; 
+        color: white;
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    button:hover {
+        opacity: 0.8;
+    }
+</style>
+</head>
+<body>
+
+<h1>Periodic Table of Elements </h1>
+
+<div class="table-container">
+    <div class="table">
+        <div id="H" class="element" onclick="openModal(0)">
+            <img src="hydrogen.jpeg" alt="Hydrogen Sample">
+            <div class="element-content">
+                <span class="atomic-number">1</span>
+                <span class="symbol">H</span>
+                <span class="name">Hydrogen</span>
+            </div>
+        </div>
+
+        <div id="He" class="element" onclick="openModal(1)">
+            <img src="helium.jpeg" alt="Helium Sample">
+            <div class="element-content">
+                <span class="atomic-number">2</span>
+                <span class="symbol">He</span>
+                <span class="name">Helium</span>
+            </div>
+        </div>
+
+        <div id="Li" class="element" onclick="openModal(2)">
+            <img src="lithium.jpeg" alt="Lithium Sample">
+            <div class="element-content">
+                <span class="atomic-number">3</span>
+                <span class="symbol">Li</span>
+                <span class="name">Lithium</span>
+            </div>
+        </div>
+
+        <div id="Be" class="element" onclick="openModal(3)">
+            <img src="brillium.jpeg" alt="Beryllium Sample">
+            <div class="element-content">
+                <span class="atomic-number">4</span>
+                <span class="symbol">Be</span>
+                <span class="name">Beryllium</span>
+            </div>
+        </div>
+
+        <div id="B" class="element" onclick="openModal(4)">
+            <img src="boron.jpeg" alt="Boron Sample">
+            <div class="element-content">
+                <span class="atomic-number">5</span>
+                <span class="symbol">B</span>
+                <span class="name">Boron</span>
+            </div>
+        </div>
+
+        <div id="C" class="element" onclick="openModal(5)">
+            <img src="carbon.jpeg" alt="Carbon Sample">
+            <div class="element-content">
+                <span class="atomic-number">6</span>
+                <span class="symbol">C</span>
+                <span class="name">Carbon</span>
+            </div>
+        </div>
+
+        <div id="N" class="element" onclick="openModal(6)">
+            <img src="nitrogen.jpeg" alt="Nitrogen Sample">
+            <div class="element-content">
+                <span class="atomic-number">7</span>
+                <span class="symbol">N</span>
+                <span class="name">Nitrogen</span>
+            </div>
+        </div>
+
+        <div id="O" class="element" onclick="openModal(7)">
+            <img src="oxygen.jpeg" alt="Oxygen Sample">
+            <div class="element-content">
+                <span class="atomic-number">8</span>
+                <span class="symbol">O</span>
+                <span class="name">Oxygen</span>
+            </div>
+        </div>
+
+        <div id="F" class="element" onclick="openModal(8)">
+            <img src="fluorin.jpeg" alt="Fluorine Sample">
+            <div class="element-content">
+                <span class="atomic-number">9</span>
+                <span class="symbol">F</span>
+                <span class="name">Fluorine</span>
+            </div>
+        </div>
+
+        <div id="Ne" class="element" onclick="openModal(9)">
+            <img src="neon.jpeg" alt="Neon Sample">
+            <div class="element-content">
+                <span class="atomic-number">10</span>
+                <span class="symbol">Ne</span>
+                <span class="name">Neon</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <h2 id="symbol"></h2>
+        <img id="elementImage" src="" alt="Element Image">
+        <p><strong>Atomic Number:</strong> <span id="atomicNumber"></span></p>
+        <p><strong>Name:</strong> <span id="elementName"></span></p>
+        <p><strong>Atomic Weight:</strong> <span id="atomicWeight"></span></p>
+
+        <div class="modal-buttons">
+            <button class="prev" onclick="previous()">Previous</button>
+            <button class="next" onclick="next()">Next</button>
+        </div>
+        <button class="close" onclick="closeModal()">Close</button>
+    </div>
+</div>
+
+<script>
+const elements = [
+    {
+        symbol: "H",
+        name: "Hydrogen",
+        atomicNumber: 1,
+        atomicWeight: "1.008",
+        image: "hydrogen.jpeg"
+    },
+    {
+        symbol: "He",
+        name: "Helium",
+        atomicNumber: 2,
+        atomicWeight: "4.0026",
+        image: "helium.jpeg"
+    },
+    {
+        symbol: "Li",
+        name: "Lithium",
+        atomicNumber: 3,
+        atomicWeight: "6.94",
+        image: "lithium.jpeg"
+    },
+    {
+        symbol: "Be",
+        name: "Beryllium",
+        atomicNumber: 4,
+        atomicWeight: "9.0122",
+        image: "brillium.jpeg"
+    },
+    {
+        symbol: "B",
+        name: "Boron",
+        atomicNumber: 5,
+        atomicWeight: "10.81",
+        image: "boron.jpeg"
+    },
+    {
+        symbol: "C",
+        name: "Carbon",
+        atomicNumber: 6,
+        atomicWeight: "12.011",
+        image: "carbon.jpeg"
+    },
+    {
+        symbol: "N",
+        name: "Nitrogen",
+        atomicNumber: 7,
+        atomicWeight: "14.007",
+        image: "nitrogen.jpeg"
+    },
+    {
+        symbol: "O",
+        name: "Oxygen",
+        atomicNumber: 8,
+        atomicWeight: "15.999",
+        image: "oxygen.jpeg"
+    },
+    {
+        symbol: "F",
+        name: "Fluorine",
+        atomicNumber: 9,
+        atomicWeight: "18.998",
+        image: "fluorin.jpeg"
+    },
+    {
+        symbol: "Ne",
+        name: "Neon",
+        atomicNumber: 10,
+        atomicWeight: "20.180",
+        image: "neon.jpeg"
+    }
+];
+
+let currentIndex = 0;
+
+function openModal(index) {
+    currentIndex = index;
+    showElement();
+    document.getElementById("modal").style.display = "flex";
+}
+
+function showElement() {
+    const e = elements[currentIndex];
+    document.getElementById("symbol").innerText = e.symbol;
+    document.getElementById("elementName").innerText = e.name;
+    document.getElementById("atomicNumber").innerText = e.atomicNumber;
+    document.getElementById("atomicWeight").innerText = e.atomicWeight;
+    document.getElementById("elementImage").src = e.image;
+}
+
+function closeModal() {
+    document.getElementById("modal").style.display = "none";
+}
+
+function next() {
+    currentIndex = (currentIndex + 1) % elements.length;
+    showElement();
+}
+
+function previous() {
+    currentIndex = (currentIndex - 1 + elements.length) % elements.length;
+    showElement();
+}
+
+// Close modal when clicking outside
+window.onclick = function(e) {
+    if (e.target === document.getElementById("modal")) {
+        closeModal();
+    }
+};
+</script>
+
+</body>
+</html>
